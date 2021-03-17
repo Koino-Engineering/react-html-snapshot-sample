@@ -1,31 +1,22 @@
+import { render } from "@testing-library/react";
 import fse from 'fs-extra';
-import puppeteer from 'puppeteer';
-import ReactDOM from "react-dom";
 import App from './App';
 
-test('renders learn react link', async () => {
-    return puppeteer.launch({
-        args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    }).then(async browser => {
-        return browser
-            .newPage()
-            .then(async (page) => {
-                return page
-                    .evaluate(() => document)
-                    .then(async () => {
-                        const container = document.createElement("div")
-                        document.body.id = "body"
-                        container.id = "root"
-                        document.body.appendChild(container)
-                        ReactDOM.render(<App />, container)
-                        return new XMLSerializer().serializeToString(document)
-                    })
-            })
-            .then(htmlString => {
-                return fse.writeFile(__filename + ".snap.html", htmlString)
-            })
-            .then(() => {
-                return browser.close()
-            });
-    })
+test('html snapshot test', async () => {
+    const addStyle = function (dirname: string, urls: string[]) {
+        return urls.map(url => {
+            const style = document.createElement("style")
+            style.lang = "css"
+            style.innerHTML = fse.readFileSync(dirname + (url.startsWith("/") ? url : ("/" + url))).toString()
+            return document.head.appendChild(style)
+        })
+    }
+    addStyle(__dirname, [
+        "/index.css",
+        "/App.css"
+    ])
+    const container = document.createElement("div")
+    document.body.appendChild(container)
+    render(<App />, { container })
+    return fse.writeFile(__filename + ".snap.html", new XMLSerializer().serializeToString(document))
 });
